@@ -10,9 +10,7 @@
     "ejs": "*",
     "mongodb": ">= 0.9.9",
     "connect-mongo": "*",
-    "connect-flash": "*",
     "mongoose": "*",
-    "cheerio": "*",
     "xml2js": "*",
     "libxmljs": "*",
     "blueimp-md5": "*"

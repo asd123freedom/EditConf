@@ -5,12 +5,11 @@
 
 var express = require('express');
 var routes = require('./routes');
-//var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
-var MongoStore = require("connect-mongo")(express);
+//var MongoStore = require("connect-mongo")(express);
 var settings = require("./settings");
-var flash = require("connect-flash");
+//var flash = require("connect-flash");
 var app = express();
 
 // all environments
@@ -18,17 +17,17 @@ app.set('port', process.env.PORT || 3333);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.engine('html', require('ejs').renderFile);
-app.use(flash());
+//app.use(flash());
 app.use(express.favicon());
 app.use(express.logger('dev'));
 app.use(express.bodyParser({
     keepExtensions:true,
     uploadDir: "./public/uploads"
 }));
-//app.use(express.json());
-//app.use(express.urlencoded());
 app.use(express.methodOverride());
 app.use(express.cookieParser());
+app.use(express.session({ secret: "freedom" }));
+/*
 app.use(express.session({
 	secret:settings.cookieSecret,
 	key:settings.db,
@@ -37,6 +36,7 @@ app.use(express.session({
 		db:settings.db
 	})
 }));
+*/
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -44,15 +44,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 if ('development' == app.get('env')) {
   app.use(express.errorHandler());
 }
-
-//app.get('/', routes.index);
-//app.get('/users', user.list);
-// app.post('/reg',function(req,res){
-// 	var name=req.body.name;
-// 	var password=req.body.password;
-// 	var password_re=req.body['password-repeat'];
-	
-// });
 
 routes(app);
 

@@ -1,6 +1,6 @@
 var fs = require('fs');
 var Deploy = require("../models/deploy.js");
-var Plan = require("../operation/Plan.js");
+//var Plan = require("../operation/Plan.js");
 var fileBlocks = require("./fileBlocks.js").getBlocks;
 var assemble = require("./assemble.js").assemble;
 
@@ -61,6 +61,8 @@ exports.getJSON = function(req, res) {
 	    res.send(result);
 	});
 }
+exports.getPlan = function(req, res) {};
+/*
 exports.getPlan = function(req, res) {
 	Plan.find({}, function(err, plans) {
 		if(err) {
@@ -70,7 +72,7 @@ exports.getPlan = function(req, res) {
 		} 
 	})
 }
-
+*/
 exports.changeNode = function(req,res) {
 	var s_path = req.body["s-path"] || "package:1 action:2";
 	var f_path = req.body["f-path"] || ".\\struts.xml";

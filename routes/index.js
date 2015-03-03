@@ -7,7 +7,7 @@
 //   res.render('index', { title: 'Express' });
 // };
 var crypto=require("crypto");
-var User=require("../models/user.js");
+//var User=require("../models/user.js");
 var controller = require("../controllers/index");
 
 module.exports=function(app){

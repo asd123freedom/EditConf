@@ -1,6 +1,12 @@
 var mongoose = require('mongoose');  
-var Schema = mongoose.Schema;  
-mongoose.connect('mongodb://localhost/test');
+var Schema = mongoose.Schema;
+try {
+  mongoose.connect('mongodb://localhost/test');
+} catch (e) {
+  console.log("db connect error");
+  return;
+}
+
 var db = mongoose.connection;  
 db.on('error', console.error.bind(console, 'connection error:'));
 /*
