@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+
+
+	<bean id="contextSource" class="org.springframework.ldap.core.support.LdapContextSource"
+		scope="singleton">
+		<!--<property name="url" value="ldap://221.210.188.221:389" /> -->
+		<property name="url" value="ldap://192.168.0.197:389" /> <!-- 197服务器 -->
+		<!-- <property name="url" value="ldap://localhost:4389" /> --><!-- 无锡 -->
+		
+		<property name="base" value="dc=hiservice,dc=com" />
+		<property name="userDn" value="cn=Directory Manager" />
+		<property name="password" value="123456" />
+	</bean>
+	<!--
+		此类无需显示关闭，因为其本身并不需要建立连接
+		当使此类实例进行操作时，如lookup,bind,search等等操作，会首先建立DirContext连接。
+		当操作执行完毕时DirContext会被自动关闭。 而DirContext连接的配置在contextSource中配置，可以使用连接池
+	-->
+	<bean id="ldapTemplate" class="org.springframework.ldap.core.LdapTemplate"
+		scope="prototype">
+		<constructor-arg ref="contextSource" />
+	</bean>
+
+	<bean id="ldapTenantDao" class="com.hiservice.ldap.dao.LdapTenantDaoImpl" scope="prototype"/>
+	<bean id="ldapUserDao" class="com.hiservice.ldap.dao.LdapUserDaoImpl" scope="prototype"/>
+
+	<bean id="authenticationService" class="com.hiservice.authentication.LdapAuthenticationService"
+		scope="prototype">
+		<property name="ldapTemplate" ref="ldapTemplate" />
+	</bean>
+	
+	<bean id="userManagementService" class="com.hiservice.authentication.UserManagementServiceImpl" scope="prototype" />
+	
+	<bean id="tenantSchemaCopyService" class="com.hiservice.authentication.TenantSchemaCopyServiceImpl" scope="prototype">
+	</bean>
+		
+
+</beans>

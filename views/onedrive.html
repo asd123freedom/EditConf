@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>文件同步</title>
+    <link href="../bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
+    <script src="../js/jquery-1.9.1.js" type="text/javascript"></script>    
+    <script src="../bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+    <style>
+    	.wrapper {font-family: "Microsoft YaHei",monospace,sans-serif; width: 90%; margin: auto; }
+		.tree {}
+		.tree > ul > li:before,
+		.tree > ul > li:after{display: none; }
+		.tree li {position: relative; list-style: none; margin: 0; padding: .5em 1em; color: #000; }
+		.tree li:before,
+		.tree li:after {content: ""; position: absolute; left: -.1em; top: -1.1em; width: 1em; }
+		.tree li:before{height: 2.3em; border-bottom: 2px solid #000; }
+		.tree li:after{height: 100%; border-left: 2px solid #000; }
+		.tree li:nth-child(1):before{height: 1em; top: .2em; }
+		.tree li:last-child:after{height: 2.3em; }
+		.tree span {position: relative; z-index: 1; padding: .2em .5em .2em .5em; border-radius: .5em; background-color: #000000; color: white; cursor: pointer; }
+		.tree span i{margin-left: .5em; }
+		table.edit span {
+
+		}
+		.table-toggle {
+			margin-left: 30px;
+		}
+		.menu {
+			margin-right: -30px;
+		}
+		div.plan {
+			display: inline-block;
+			margin-left: 15px;
+			//margin-top: 10px;
+		}
+		div.plan input {
+			margin:0;
+		}
+		.nav-list a {
+			 overflow:hidden; 
+			 text-overflow:ellipsis; 
+			 white-space:nowrap;
+		}
+
+    </style>
+</head>
+<script type="text/javascript">
+			$(document).ready(function(){
+                function getXMLJSON(str) {
+                    $.ajax({
+                        url: "../GetJSON",
+                        type: "GET",
+                        data: {file_path: str},
+                        success:function(data){
+                            try
+                            {
+                                //var obj=JSON.parse(data.jsonstr);
+                                var obj = data;
+                                console.log(obj);
+                                var parent=$(".tree > ul > li.temp");
+                                //$(".tree > ul > li").find("span").text(obj["@name"]);
+                                drawTree(obj.struts,parent);
+                                $(".tree>ul ul").hide();
+                                //单击时将节点的属性值显示在表格中
+                                $(".tree span").on("click",function(event){
+                                    var $this = $(this);
+                                    $("table.attr").data("span",$this);
+                                    renderTable($this.data("data"));
+                                    $("table.edit").data("data",$this);
+                                });
+                                //双击是显示节点的子节点
+                                $(".tree span").on("dblclick",function(event) {
+                                    var $this = $(this);
+                                    var $ul = $this.parent().children("ul");
+                                    if ($ul.length > 0) {
+                                        if($ul.is(":visible")){
+                                            $ul.slideUp();
+                                            //$this.children("i").removeClass("fa-minus").addClass("fa-plus");
+                                        } else {
+                                            $ul.slideDown();
+                                            //$this.children("i").removeClass("fa-plus").addClass("fa-minus");
+                                        }
+                                    }
+                                });
+                                //点击按钮调用action完成对配置文件的修改工作
+                                $(".editNode").bind("click",function(){
+                                    var node = $("table.edit").data("data");
+                                    getNodeInfo(node);
+                                });
+                            }
+                            catch (error){
+                                console.log(error);
+                            }                           
+                        } 
+                    });
+                }
+				$("table.edit").hide();
+				$("table.plan").hide();
+				$("div.plan").hide();
+				$(".saveItem").hide();
+				$(".table-toggle").bind("click",function(e) {
+					if ($(e.target).hasClass("edit")) {
+						$("table.attr").hide();
+						$("table.edit").fadeIn();
+					} else {
+						$("table.edit").hide();
+						$("table.attr").fadeIn();
+					}
+				});
+				$("button.savePlan").bind("click",function(e) {
+					if(!$(this).hasClass("front")) {
+						$(this).text("回到编辑页面");
+						$(this).addClass("front");
+						$("div.plan").fadeIn();// show the table for plan
+						$(".tree").fadeOut();// hide the tree
+						$("table.edit").hide();//hide the table for editing attributes
+						$("table.attr").hide();//hide the table for showing attributes
+						$(".table-toggle").hide();//hide the button for deciding edit or show
+						$(".editNode").hide();//hide the button for transforming data to server 
+						$(".saveItem").show();//show the button to save the plan
+						$("button.plus").hide();
+						$("button.minus").hide();
+						$("table.plan").show();
+						initPlanTable();
+					} else {
+						$(this).text("存储配置方案");
+						$(this).removeClass("front");
+					}
+				});
+				function initPlanTable() {
+					$.ajax({
+						url: "../GetPlan",
+         				type: "get",
+         				data: {},
+         				success:function(data){
+         					var data = data.data;
+                            console.log(data);
+         					var tr = $("table.plan").find("tbody tr.temple");
+         					for (var i=0; i<data.length; i++) {
+         						var $tr = tr.clone().removeClass("temple hide");
+         						$tr.find(".num").text(i+1);
+         						$tr.find(".name").text(data[i].name);
+         						$tr.find(".date").text(data[i].date);
+         						$tr.appendTo($("table.plan tbody"));
+                                $tr.find(".oper").find(".btn.btn-primary").bind("click",function(){
+                                    $(".modal-body").load("/pages/Plandialog.html", function(){
+                                        $(".modal-header").find("h3").text("配置方案包含节点");
+                                        $('.modal').modal('show');
+                                        console.log("OK");
+                                    });
+                                });
+         					}
+         				}, 
+					});
+				}
+				$("button.plus").bind("click",function(e) {
+                    var name;
+                    /*
+                    $(".modal-body").load("/pages/Deploydialog.html", function(){
+                        $(".modal-header").find("h3").text("保存配置文件操作");
+                        $('.modal').modal('show');
+                    });
+                    */
+					var node = $("table.edit").data("data");
+         			var obj = getNodeInfo(node);
+         			var $li = $(".nav-list").find("li.temple").clone();
+         			$li.removeClass("hide temple");
+         			$li.find("a").text(obj["s-path"]+" IN "+obj["f-path"]);
+         			$li.appendTo(".nav-list");
+				});
+				$(".nav-list").on("click","a", function(e) {
+					if($(e.target).parent().hasClass("active")) {
+						$(e.target).parent().removeClass("active");
+					} else {
+						$(e.target).parent().addClass("active");
+					}					
+				});
+				function getNodeInfo(node) {
+					var $this = node;
+					var $target = $this.parent();
+					var arr = $this.parents("li");
+					var str = "";
+					for(var i=arr.length-1; i>=0;i--) {
+						//console.log($(arr[i]).children("span"));
+						var parent = $(arr[i]).parent();
+						var childs = parent.children();
+						var index = 0;
+					for(var j=0;j<childs.length;j++) {
+						if($(childs[j]).children("span").text() == $(arr[i]).children("span").text()) {
+							index++;
+						}
+						if(childs[j] == arr[i]) {
+							break;
+						}
+					}
+						//console.log(index);
+						str +=$(arr[i]).children("span").text()+":"+index+" ";
+					}
+					console.log(str);
+					var trs = $("table.edit").find("tbody tr:not(.temple)");
+					var newData = {};
+					for(var i = 0; i < trs.length; i++) {
+						var tmp = $(trs[i]);
+						newData[tmp.find(".name").val()] = tmp.find(".content").val();
+					}
+					console.log(newData);
+					var data = {};
+					trs = $("table.attr").find("tbody tr:not(.temple)");
+					for(var i = 0;i < trs.length; i++) {
+						var tmp = $(trs[i]);
+						data[tmp.find(".name").text()] = tmp.find(".content").text();
+					}
+					console.log(data);
+					return {
+						"s-path" : str,
+						"f-path" : "struts.xml",
+						data : data,
+         				newData : newData
+					}
+				}
+				function intiEditTable() {
+					$("table.edit").find("tbody tr:not(.temple)").remove();
+					var $trs = $("table.attr").find("tbody tr:not('.temple')");
+					var table = $("table.edit");
+					for(var i=0;i<$trs.length;i++) {
+						var obj = $($trs[i]);
+						$tr=table.find("tr.temple").clone().removeClass("temple hide");
+						$tr.find(".num").text(obj.find(".num").text());
+						$tr.find(".name").val(obj.find(".name").text());
+						$tr.find(".content").val(obj.find(".content").text() || "空");
+						$tr.appendTo(table.find("tbody"));
+					}
+				}
+				function renderTable(data,table) {
+					//console.log(data);
+					var table = table || $("table.attr");
+					//console.log(table);
+					table.find("tbody tr:not(.temple)").remove();
+					var index=0;
+					var item;
+					for( item in data ) {
+						if(data.hasOwnProperty(item)) {
+							index++;
+							//console.log(item);
+							if (item == "_") {
+								var name = "@text";
+								$tr=table.find("tr.temple").clone().removeClass("temple hide");
+								$tr.find(".num").text(index+"");
+								$tr.find(".name").text(name);
+								$tr.find(".content").text($.trim(data[item]) || "空");
+								$tr.appendTo(table.find("tbody"));
+							}else if (item  == "$") {
+								var _item;
+								for( _item in data["$"] ) {
+									$tr=table.find("tr.temple").clone().removeClass("temple hide");
+									$tr.find(".num").text(index+"");
+									index++;
+									$tr.find(".name").text(_item);
+									$tr.find(".content").text($.trim(data["$"][_item]) || "空");
+									$tr.appendTo(table.find("tbody"));
+								}
+							}
+						}
+					}
+					intiEditTable();
+				}
+				//var parent=$(".tree > ul > li.temp");
+				function drawTree(data,node) {
+					//不加这句话item会成全局变量
+					var item;
+					for(item in data) {
+						//console.log(item);
+						if(item == "$") {
+
+						}else if (isArray(data[item])){
+							var arr = data[item];
+							if(arr.length) {
+								//console.log(ul);
+								//ul.appendTo(node.next());
+							}
+							for(var i = 0; i < arr.length; i++) {
+								var n = node.clone().removeClass("hide temp");
+								n.find("span").text(item);
+								n.find("span").data("data",arr[i]);
+								node.parent().append(n);
+								var tmp = arr[i];
+								//console.log(tmp);
+								var ul=$("<ul>");
+								$("<li class='hide temp'><span></span></li>").appendTo(ul);
+								ul.appendTo(n);
+								drawTree(tmp,ul.find("li:eq(0)"));
+							}
+						}
+					}
+				}
+				function isArray(arr) {
+					return Object.prototype.toString.apply(arr) === "[object Array]";
+				}
+				//让后台得到文件列表
+				
+				$.ajax({
+						url: "../FileList",
+         				type: "GET",
+                        data: {"prefix": ""},
+         				success:function(data){
+                            console.log(data);
+         					console.log("加载文件列表成功");
+         				}, 
+				});
+                //下拉菜单中的内容显示的输入框中，并且存储文件的路径
+				$("ul.dropdown-menu").on("click","li",function(){
+					$(".input.conf").val($(this).find("a").text());
+					$(".input.conf").data("path",$(this).data("path"));
+					$(".dropdown").removeClass("open");
+				});
+				$(".parseXML").bind("click",function(){
+					//console.log($(".input").data("path"));
+                    getXMLJSON($(".input").data("path"));
+
+				});
+				//实现前缀匹配生成候选列表的功能（不断进行ajax交互）
+				$(".input.conf").bind("keyup",function(event){
+					//console.log(event);
+					var txt=$(this).val();
+					//console.log(txt);
+					var reg=/\w+/;
+					if(txt==""){
+						$(".dropdown").removeClass("open");
+					}					
+					if(!reg.test(txt)){
+						return;
+					}
+					console.log(txt);
+					$.ajax({
+						//url: "http://127.0.0.1:8080/struts2_demo/FileList.action",
+						url: "../FileList",
+         				type: "GET",
+         				data: {"prefix":txt},
+         				success:function(data){
+         					console.log(data);
+         					var arr=data.data;
+         					$("ul.dropdown-menu").find("li:not(.temple)").remove();
+         					if(arr.length==0){
+         						$(".dropdown").removeClass("open");
+         						return;
+         					}
+         					for(var i=0;i<arr.length;i++){
+         						var $li=$("ul.dropdown-menu").find("li.temple:eq(0)").clone();
+         						$li.find("a").text(arr[i].name);
+         						$li.data("path",arr[i].path);
+         						$li.removeClass("temple");
+         						$li.removeClass("hide");
+         						$li.appendTo($("ul.dropdown-menu"));
+         					}
+         					if(!$(".dropdown").hasClass("open")){         					
+         						$(".dropdown").addClass("open");
+         					}
+         				}, 
+					});
+				});
+				//失去焦点的时候就将下拉列表缩回
+				$(".input").bind("blur",function(){
+					if($(".dropdown").hasClass("open")){
+						//$(".dropdown").removeClass("open");
+					}
+				});
+				var input=$("input[type=file]");
+				input.bind("change",function(){
+					var file=this.files[0];
+					$(".content").data("fileName",file.name);
+					if(window.FileReader) {  
+		                var fr = new FileReader();  
+		                fr.onloadend = function(e) {
+		                	//console.log(e.target.result);
+		                	$(".content").removeClass("hide");  
+		                    $(".content").text(e.target.result);
+		                    $(".content").data("str",e.target.result);
+		                };  
+		                fr.readAsText(file);  
+		            }
+		            var rsync=$(".navbar").data("test");
+		            rsync.charset(file,20);  
+				});
+				$(".btn.file").bind("click",function(){
+					//为了迁移到node注释
+					//$("input[type=file]").trigger("click");
+				});
+				$(".service").bind("click",function(){
+                    $(".modal-body").load("pages/InitServicedialog.html", function(){
+                        $(".modal-header").find("h3").text("开通服务设置");
+                        $('.modal').modal('show');
+                        console.log("OK");
+                    });
+				});
+                $(".modal .close-modal").bind("click",function(){
+                    $('.modal').modal('hide');
+                });
+				$(".btn-success.upload").bind("click",function(){
+					//为了迁移node的注释
+					//return;
+                    $(".modal-body").load("pages/UploadDialog.html", function(){
+                        $(".modal-header").find("h3").text("拖拽文件夹至此");
+                        $('.modal').modal('show');
+                        $('.progress .bar').css('width',0);
+                        $(".dropzone").MyUpload();
+                    });
+					
+				});				
+			}); 
+</script>
+  <body>
+  		<div class="ctrl" style="position: fixed; right: 10px; bottom: 10px;">
+  			<a class="btn" href="void:javascript(0)"><i class="icon-arrow-up"></i></a>
+  		</div>
+  		<div class="navbar" style="margin-bottom:0px;">
+		  <div class="navbar-inner" style="border-radius:0px;">
+  			<div class="container" style="max-width:1000px">
+		    	<a class="brand" href="#">部署系统</a>
+		    	<a class="btn btn-info disabled" style="" href="#"> Star</a>
+			    <form class="navbar-form pull-right">
+				  <input type="text" class="span2" placeholder="Email">
+				  <input type="password" class="span2" placeholder="PassWord">
+				  <button type="submit" class="btn">Login</button>				  
+				</form>
+				</div>
+		  </div>
+		</div>
+  		<div class="row-fluid">
+  			<div class="span12"  style="height:730px;">
+  				<div class="row-fluid"  style="height:730px;">
+  					<div class="span2 conf OPList">
+  						<div class="menu">
+	  						<ul class="nav nav-list">
+	  							<li class="temple hide"><a href="#"> Misc</a></li>
+							</ul>
+						</div>
+  					</div>
+  					<div class="span10" style="border-left:1px solid rgb(198, 200, 204);
+  					height:100%;
+  					">
+  						<div class="row-fluid">
+  							<div class="span4" style="padding:5px">
+		  						<input type="text" class="span9 input conf" style="margin-bottom:5px"/>
+		  						<button type="button" class="btn btn-warning parseXML" style="margin-bottom:5px">解析文件</button>
+		  						<div class="dropdown typehead"> 						  						
+								  <!-- Link or button to toggle dropdown -->
+								  <ul class="dropdown-menu">
+								    <li class="hide temple"><a tabindex="-1" href="#">Action</a></li>
+								  </ul>
+								</div>
+		  					</div>
+		  					<div class="span5 upload" style="padding:5px">
+		  						<!--button type="button" class="btn btn-info file upload">上传文件</button-->
+		  						<button type="button" class="btn btn-info service">开通服务</button>
+		  						<button type="button" class="btn btn-success upload">拖拽上传</button>
+		  						<input type="file" style="display:none">
+		  					</div>
+  						</div>
+  						<div class="row-fluid">
+  							<div class="span5">
+  								<div class="wrapper conf" onselectstart="return false">
+								  <div class="tree">
+								    <ul>
+								      <li class="hide temp">
+								        <span>加载中...</span>
+								      </li>
+								    </ul>
+								  </div>
+								</div> 
+  							</div>
+  						</div>
+  						<!--
+  						<pre class="hide content"></pre>
+  						<a class="download">点击下载</a>
+  						-->
+  						<div class="btn-group table-toggle conf" data-toggle="buttons-radio">
+						  <button type="button" class="btn btn-primary attr">展现</button>
+						  <button type="button" class="btn btn-primary edit">编辑</button>
+						</div>
+						<button type="button" class="btn btn-info editNode conf">修改</button>
+						<button type="button" class="btn plus conf"><i class="icon-plus"></i></button>
+						<button type="button" class="btn minus conf"><i class="icon-minus"></i></button>
+						<button type="button" class="btn btn-info savePlan conf">存储配置方案</button>
+						<button type="button" class="btn btn-primary saveItem conf">保存</button>
+
+						<div class="plan">
+							<input type="text" class="span input"/>
+						</div>
+  						<table class="table edit conf">
+			                <thead>
+			                <tr>
+			                  <th width="10%">#</th>
+			                  <th width="45%">属性名</th>
+			                  <th width="45%">属性值</th>
+			                </tr>
+			              </thead>
+			              <tbody>
+			                <tr class="temple hide">
+			                  <td class=""><span class="num" style="display:inline-block;height:30px;line-height:30px">1</span></td>
+			                  <td class=""><input class="name" type="text" style="margin:0"/></td>
+			                  <td class=""><input class="content" type="text" style="margin:0"/></td>
+			                </tr>
+			              </tbody>
+			            </table>
+  						<table class="table attr conf">
+			              <thead>
+			                <tr>
+			                  <th width="10%">#</th>
+			                  <th width="45%">属性名</th>
+			                  <th width="45%">属性值</th>
+			                </tr>
+			              </thead>
+			              <tbody>
+			                <tr class="temple hide">
+			                  <td class="num">1</td>
+			                  <td class="name">Mark</td>
+			                  <td class="content">Otto</td>
+			                </tr>
+			              </tbody>
+			            </table>
+			            <table class="table plan">
+			              <thead>
+			                <tr>
+			                  <th width="10%">#</th>
+			                  <th width="30%">方案名</th>
+			                  <th width="30%">时间</th>
+                              <th width="30%">操作</th>
+			                </tr>
+			              </thead>
+			              <tbody>
+			                <tr class="temple hide">
+			                  <td class="num">1</td>
+			                  <td class="name">Mark</td>
+			                  <td class="date">Otto</td>
+                              <td class="oper">
+                                <button type="button" class="btn btn-danger">删除</button>
+                                <button type="button" class="btn btn-primary">应用</button>
+                              </td>
+			                </tr>
+			              </tbody>
+			            </table>
+  					</div>
+  				</div>  			
+    		</div>
+  		</div>
+  		<div class="modal hide fade">
+		  <div class="modal-header">
+		    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+		    <h3>拖拽文件夹至此</h3>
+		  </div>
+          <div class="modal-body">
+          </div>
+		  <div class="modal-footer">
+		    <a href="#" class="btn close-modal">关闭</a>
+		    <a href="#" class="btn btn-primary upload">确定</a>
+		  </div>
+		</div>   		  		  
+  </body>
+	<script src="../js/jquery-1.9.1.js" type="text/javascript"></script>    
+	<script src="../bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+	<script src="../js/rsync/md5.min.js" type="text/javascript"></script>
+	<script src="../js/rsync/init.js" type="text/javascript"></script>
+	<script src="../js/MyUpload.js" type="text/javascript"></script>
+</html>
