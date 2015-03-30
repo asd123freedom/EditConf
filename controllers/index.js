@@ -5,11 +5,9 @@ var fileBlocks = require("./fileBlocks.js").getBlocks;
 var assemble = require("./assemble.js").assemble;
 
 exports.getFileList = function(req, res) {
-	var start = req.query["prefix"] || "";
-	//console.log(start);
-	//req.session.files = null;
+	var start = req.body["prefix"] || "";
 	fileList = [];
-	var path = req.path_param || "E:\\安博思软\\workspace\\HiServiceCRM\\src";
+	var path = req.body["path_param"] || "E:\\安博思软\\workspace\\HiServiceCRM\\src";
 	function walk(path){
 	  var dirList = fs.readdirSync(path);
 	  dirList.forEach(function(item){

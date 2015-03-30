@@ -5,19 +5,54 @@ app.run(["$rootScope", "$location", function($rootScope, $location) {
 
 app.config(["$routeProvider", "$locationProvider", function($routeProvider, $locationProvider) {
   $routeProvider.when("/config", {
-    templateUrl: "config.html",
+    templateUrl: "Config.html",
     controller: "ConfigCtrl"
   });
   return $locationProvider.html5Mode(false);
 }]);
 app.controller("MainCtrl", function($scope, api, $rootScope) {
+    /*
+    $.ajax({
+        url: "../FileList",
+        type: "GET",
+        data: {"prefix": ""},
+        success:function(data){
+          console.log(data);
+          //$scope.fileList = data;
+          console.log("加载文件列表成功");
+        }, 
+    });
+    */
     $scope.active = function($event) {
-          
+        $scope.fileList = null;
+        var txt = $scope.prefix;
+        //console.log(txt);
+        var reg=/\w+/;
+        if (txt == "") {
+            $(".dropdown").removeClass("open");
+        }         
+        if (!reg.test(txt)) {
+            return;
+        }
+        api.plainPost("FileList", { "prefix": txt}).
+        success( function (data){
+            var arr = data.data;
+            $scope.fileList = arr;
+            console.log(arr);
+            //$("ul.dropdown-menu").find("li:not(.temple)").remove();
+            if (arr.length == 0) {
+                $(".dropdown").removeClass("open");
+                return;
+            }
+            if (!$(".dropdown").hasClass("open")) {                   
+                $(".dropdown").addClass("open");
+            }
+        });
     }
 });
 app.controller("ConfigCtrl", function($scope, api, $rootScope) {
     var str="";
-    api.plainGet("GetJSON", {file_path: str})
+    api.plainPost("GetJSON", {file_path: str})
     .success(function(data) {
         var obj = data;
         console.log(obj);
@@ -96,7 +131,7 @@ app.factory("api", ["$http", "$q", function($http, $q){
         });
     };
     plainPost = function (url, data) {
-         return $http({
+        return $http({
               method: 'POST',
               url: "/" + url,
               data: data,
@@ -104,7 +139,8 @@ app.factory("api", ["$http", "$q", function($http, $q){
         });
     }
     plainGet = function (url, data) {
-         return $http({
+        console.log(data);
+        return $http({
               method: 'GET',
               url: "/" + url,
               data: data,

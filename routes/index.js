@@ -72,7 +72,7 @@ module.exports=function(app){
 	app.get("/logout",function(req,res){
 
 	});
-	app.get("/FileList", controller.getFileList);
+	app.post("/FileList", controller.getFileList);
 	app.get("/GetJSON", controller.getJSON);
 	app.post("/ChangeNode", controller.changeNode);
 	app.get("/GetPlan", controller.getPlan);

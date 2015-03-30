@@ -43,12 +43,12 @@
             <!-- start of right part -->
               <div class="row-fluid">
                 <div class="span4" style="padding:5px">
-                  <input type="text" class="span9 input conf" style="margin-bottom:5px"/>
+                  <input type="text" class="span9 input conf" style="margin-bottom:5px" ng-model="prefix" ng-keyup="active($event)"/>
                   <button type="button" class="btn btn-warning parseXML" style="margin-bottom:5px">解析文件</button>
                   <div class="dropdown typehead">                           
                   <!-- Link or button to toggle dropdown -->
-                  <ul class="dropdown-menu">
-                    <li class="hide temple"><a tabindex="-1" href="#">Action</a></li>
+                  <ul class="dropdown-menu open">
+                    <li ng-repeat="file in fileList"><a tabindex="-1" href="#">{{file.name}}</a></li>
                   </ul>
                 </div>
                 </div>
